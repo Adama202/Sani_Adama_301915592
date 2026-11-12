@@ -1,0 +1,35 @@
+Test row: outlet_stock.stock_id = 7210 (Jabi, Croissant, today). Each customer wants 3; stock is 5.
+
+=== PART 1: the bug - read, then write (lost update / oversell) ===
+S1 reads 5; S2 reads 5  (both think 3 are available)
+S1 and S2 both sold 3 (6 units sold) but only 5 existed. Stock shows 2 (S2 overwrote S1: 5-3) instead of rejecting a sale -> OVERSOLD / LOST UPDATE
+
+=== PART 2: fix 1 - atomic UPDATE with a guard (SET q = q - 3 WHERE q >= 3) ===
+S1 update rows: 1
+S2 is waiting for S1's row lock...
+S2 update rows: 0 -> second sale rejected cleanly. Stock now = 2
+
+=== PART 3: fix 2 - SELECT ... FOR UPDATE ===
+S1 locked row, sees 5
+S2 is blocked waiting for the lock...
+S2 unblocked and now sees 2 -> app refuses the sale (needs 3). Stock now = 2
+
+=== PART 4: fix 3 - SERIALIZABLE isolation (one session gets error 40001 and retries) ===
+S1 and S2 both read 5 inside SERIALIZABLE transactions
+S2 result: SerializationFailure - could not serialize access due to concurrent update
+S2 rolled back and would retry; stock now = 2
+
+=== PART 5: READ COMMITTED vs REPEATABLE READ ===
+Another session changed stock 5 -> 1 and committed.
+READ COMMITTED session now reads: 1 (sees the new value)
+REPEATABLE READ session now reads: 5 (still its snapshot)
+REPEATABLE READ update of the changed row -> SerializationFailure - could not serialize access due to concurrent update
+
+=== PART 6: deadlock (opposite lock order) and the fix (fixed lock order) ===
+S1 locked row A; S2 locked row B
+S1 -> ERROR DeadlockDetected: deadlock detected
+S2 -> got both locks
+Fix: both sessions lock the LOWER stock_id first, then the higher one.
+S1: finished | S2: finished -> no deadlock
+
+All six demos finished.

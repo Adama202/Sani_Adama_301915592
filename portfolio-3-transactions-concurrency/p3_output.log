@@ -1,0 +1,132 @@
+==> [1/4] sell_items()
+psql:/workspaces/Sani_Adama_301915592/portfolio-3-transactions-concurrency/01_sell_items.sql:21: NOTICE:  function sell_items(pg_catalog.int4,pg_catalog.int4,pg_catalog.int4,text,timestamptz,text) does not exist, skipping
+DROP FUNCTION
+CREATE FUNCTION
+Created function sell_items().
+Quick demo:
+BEGIN
+ demo_sale_id 
+--------------
+        31390
+(1 row)
+
+ROLLBACK
+Demo rolled back.
+==> [2/4] bake_run()
+psql:/workspaces/Sani_Adama_301915592/portfolio-3-transactions-concurrency/02_bake_run.sql:25: NOTICE:  function bake_run(pg_catalog.int4,pg_catalog.int4,pg_catalog.int4,date,pg_catalog.int4) does not exist, skipping
+DROP FUNCTION
+CREATE FUNCTION
+Created function bake_run().
+Quick demo:
+BEGIN
+ demo_run_id 
+-------------
+        2413
+(1 row)
+
+ROLLBACK
+Demo rolled back.
+==> [3/4] rollback demo
+Pager usage is off.
+==================================================
+ROLLBACK DEMO: bake_run() with insufficient flour
+==================================================
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+Setup done. State BEFORE bake_run():
+           what            | quantity_left 
+---------------------------+---------------
+ ingredient_batch qty_left |         1.000
+(1 row)
+
+ production_runs_for_test 
+--------------------------
+                        0
+(1 row)
+
+ stock_rows_for_test 
+---------------------
+                   0
+(1 row)
+
+
+Calling bake_run() for 100 loaves (needs 50 kg, only 1 kg available):
+BEGIN
+psql:/workspaces/Sani_Adama_301915592/portfolio-3-transactions-concurrency/03_rollback_demo.sql:68: ERROR:  Not enough unexpired stock of ingredient 20 for run 2414 (still need 49.000)
+CONTEXT:  PL/pgSQL function consume_batches_fifo(integer) line 54 at RAISE
+SQL statement "SELECT consume_batches_fifo(NEW.run_id)"
+PL/pgSQL function fn_production_run_after_insert() line 3 at PERFORM
+SQL statement "INSERT INTO production_run (product_id, run_date, units_baked, notes)
+    VALUES (p_product_id, p_run_date, p_units, 'bake_run()')
+    RETURNING run_id"
+PL/pgSQL function bake_run(integer,integer,date,integer) line 13 at SQL statement
+ROLLBACK
+
+Calling bake_run() in a nested transaction so we can see the exception:
+psql:/workspaces/Sani_Adama_301915592/portfolio-3-transactions-concurrency/03_rollback_demo.sql:88: NOTICE:  bake_run correctly raised insufficient_resources: Not enough unexpired stock of ingredient 20 for run 2415 (still need 49.000)
+DO
+
+State AFTER the failed bake_run():
+ production_runs_for_test 
+--------------------------
+                        0
+(1 row)
+
+ stock_rows_for_test 
+---------------------
+                   0
+(1 row)
+
+           what            | quantity_left 
+---------------------------+---------------
+ ingredient_batch qty_left |         1.000
+(1 row)
+
+
+Both counts must be 0, and qty_left must still be 1.000 — i.e. the
+whole bake_run transaction was rolled back, including the partial
+consumption of the rare-flour batch.
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 1
+Test artefacts cleaned up.
+==> [4/4] race condition, deadlock and isolation demos (two real sessions)
+Test row: outlet_stock.stock_id = 7210 (Jabi, Croissant, today). Each customer wants 3; stock is 5.
+
+=== PART 1: the bug - read, then write (lost update / oversell) ===
+S1 reads 5; S2 reads 5  (both think 3 are available)
+S1 and S2 both sold 3 (6 units sold) but only 5 existed. Stock shows 2 (S2 overwrote S1: 5-3) instead of rejecting a sale -> OVERSOLD / LOST UPDATE
+
+=== PART 2: fix 1 - atomic UPDATE with a guard (SET q = q - 3 WHERE q >= 3) ===
+S1 update rows: 1
+S2 is waiting for S1's row lock...
+S2 update rows: 0 -> second sale rejected cleanly. Stock now = 2
+
+=== PART 3: fix 2 - SELECT ... FOR UPDATE ===
+S1 locked row, sees 5
+S2 is blocked waiting for the lock...
+S2 unblocked and now sees 2 -> app refuses the sale (needs 3). Stock now = 2
+
+=== PART 4: fix 3 - SERIALIZABLE isolation (one session gets error 40001 and retries) ===
+S1 and S2 both read 5 inside SERIALIZABLE transactions
+S2 result: SerializationFailure - could not serialize access due to concurrent update
+S2 rolled back and would retry; stock now = 2
+
+=== PART 5: READ COMMITTED vs REPEATABLE READ ===
+Another session changed stock 5 -> 1 and committed.
+READ COMMITTED session now reads: 1 (sees the new value)
+REPEATABLE READ session now reads: 5 (still its snapshot)
+REPEATABLE READ update of the changed row -> SerializationFailure - could not serialize access due to concurrent update
+
+=== PART 6: deadlock (opposite lock order) and the fix (fixed lock order) ===
+S1 locked row A; S2 locked row B
+S1 -> ERROR DeadlockDetected: deadlock detected
+S2 -> got both locks
+Fix: both sessions lock the LOWER stock_id first, then the higher one.
+S1: finished | S2: finished -> no deadlock
+
+All six demos finished.
+Portfolio 3 complete. Evidence: race_demos_output.log

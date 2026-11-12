@@ -1,0 +1,977 @@
+==> [1/6] Verifying MongoDB is running
+==> [2/6] Creating collections + validators (01_schema_validation.js)
+Created time-series collection: crumble.oven_logs
+Created collection: crumble.recipe_cards (with $jsonSchema + oneOf validator)
+{
+  '$jsonSchema': {
+    bsonType: 'object',
+    title: 'Crumble recipe card',
+    required: [
+      'productId',
+      'name',
+      'type',
+      'steps',
+      'bakingTimeMin',
+      'bakingTempC',
+      'allergens'
+    ],
+    properties: {
+      productId: {
+        bsonType: 'number',
+        description: 'must be an int and is required'
+      },
+      name: {
+        bsonType: 'string',
+        description: 'must be a string and is required'
+      },
+      type: {
+        enum: [
+          'bread',
+          'pastry',
+          'pie',
+          'cookie'
+        ],
+        description: 'must be one of bread/pastry/pie/cookie'
+      },
+      steps: {
+        bsonType: 'array',
+        items: {
+          bsonType: 'string'
+        },
+        description: 'ordered list of preparation steps'
+      },
+      bakingTimeMin: {
+        bsonType: 'number',
+        minimum: 1,
+        maximum: 240
+      },
+      bakingTempC: {
+        bsonType: 'number',
+        minimum: 50,
+        maximum: 300
+      },
+      variations: {
+        bsonType: 'array',
+        items: {
+          bsonType: 'string'
+        }
+      },
+      allergens: {
+        bsonType: 'array',
+        items: {
+          bsonType: 'string'
+        },
+        description: 'e.g. [Gluten, Eggs, Milk]'
+      }
+    },
+    oneOf: [
+      {
+        properties: {
+          type: {
+            enum: [
+              'bread'
+            ]
+          },
+          hydrationPct: {
+            bsonType: 'number',
+            minimum: 50,
+            maximum: 90
+          },
+          fermentationHours: {
+            bsonType: 'number',
+            minimum: 1,
+            maximum: 72
+          }
+        },
+        required: [
+          'hydrationPct',
+          'fermentationHours'
+        ]
+      },
+      {
+        properties: {
+          type: {
+            enum: [
+              'pastry'
+            ]
+          },
+          laminationFolds: {
+            bsonType: 'number',
+            minimum: 0,
+            maximum: 6
+          },
+          butterPct: {
+            bsonType: 'number',
+            minimum: 0,
+            maximum: 100
+          }
+        },
+        required: [
+          'laminationFolds',
+          'butterPct'
+        ]
+      },
+      {
+        properties: {
+          type: {
+            enum: [
+              'pie'
+            ]
+          },
+          crustType: {
+            enum: [
+              'shortcrust',
+              'puff',
+              'flaky'
+            ]
+          },
+          filling: {
+            bsonType: 'string'
+          }
+        },
+        required: [
+          'crustType',
+          'filling'
+        ]
+      },
+      {
+        properties: {
+          type: {
+            enum: [
+              'cookie'
+            ]
+          },
+          doughRestHours: {
+            bsonType: 'number',
+            minimum: 0,
+            maximum: 48
+          },
+          spreadFactor: {
+            bsonType: 'number',
+            minimum: 0,
+            maximum: 2
+          }
+        },
+        required: [
+          'doughRestHours',
+          'spreadFactor'
+        ]
+      }
+    ]
+  }
+}
+==> [3/6] Seeding oven_logs (40k+ documents) — this takes ~30s (02_seed_oven_logs.js)
+Inserted 40320 oven log documents.
+Count check: 40320
+==> [4/6] Seeding recipe_cards (03_seed_recipe_cards.js)
+Inserted 10 recipe card documents.
+Count check: 10
+--- example recipe_card of type bread ---
+{
+  _id: ObjectId('6af614fb457ea23c5d8c86bf'),
+  productId: 1,
+  name: 'Sourdough loaf',
+  type: 'bread',
+  steps: [
+    'Feed the starter 8 hours before mixing',
+    'Autolyse flour and water for 1 hour',
+    'Mix in starter and salt, fold every 30 min for 3 hours',
+    'Bulk ferment at 24C for 4 hours',
+    'Shape into rounds and proof in banneton 1 hour',
+    'Bake in preheated Dutch oven at 240C for 25 min covered, 20 min uncovered'
+  ],
+  bakingTimeMin: 45,
+  bakingTempC: 240,
+  variations: [
+    'whole wheat',
+    'olive',
+    'cranberry walnut'
+  ],
+  allergens: [
+    'Gluten'
+  ],
+  hydrationPct: 75,
+  fermentationHours: 6
+}
+--- example recipe_card of type pastry ---
+{
+  _id: ObjectId('6af614fb457ea23c5d8c86c2'),
+  productId: 4,
+  name: 'Croissant',
+  type: 'pastry',
+  steps: [
+    'Make detrempe with flour, milk, yeast, sugar, salt',
+    'Encase butter block and laminate 3 single folds',
+    'Rest 1 hour in fridge between folds',
+    'Roll to 4mm and cut triangles',
+    'Shape and proof 2 hours',
+    'Egg wash and bake at 220C for 18 min'
+  ],
+  bakingTimeMin: 18,
+  bakingTempC: 220,
+  variations: [
+    'plain',
+    'almond',
+    'chocolate'
+  ],
+  allergens: [
+    'Gluten',
+    'Eggs',
+    'Milk'
+  ],
+  laminationFolds: 3,
+  butterPct: 25
+}
+--- example recipe_card of type pie ---
+{
+  _id: ObjectId('6af614fb457ea23c5d8c86c5'),
+  productId: 7,
+  name: 'Meat pie',
+  type: 'pie',
+  steps: [
+    'Brown minced beef with onions, tomatoes, seasoning',
+    'Make shortcrust pastry: flour, butter, salt, cold water',
+    'Rest dough 30 min',
+    'Roll out bottom crust, add cooled filling, top crust',
+    'Egg wash, slit steam vents',
+    'Bake at 200C for 35 min'
+  ],
+  bakingTimeMin: 35,
+  bakingTempC: 200,
+  variations: [
+    'Nigerian style',
+    'spicy',
+    'curry'
+  ],
+  allergens: [
+    'Gluten',
+    'Eggs'
+  ],
+  crustType: 'shortcrust',
+  filling: 'minced beef and onions'
+}
+--- example recipe_card of type cookie ---
+{
+  _id: ObjectId('6af614fb457ea23c5d8c86c7'),
+  productId: 9,
+  name: 'Chocolate chip cookie',
+  type: 'cookie',
+  steps: [
+    'Cream butter and sugars',
+    'Beat in eggs and vanilla',
+    'Mix in flour, baking powder, salt',
+    'Fold in chocolate chips',
+    'Scoop and chill 2 hours',
+    'Bake at 180C for 12 min until edges are golden'
+  ],
+  bakingTimeMin: 12,
+  bakingTempC: 180,
+  variations: [
+    'dark chocolate',
+    'white chocolate macadamia',
+    'double chocolate'
+  ],
+  allergens: [
+    'Gluten',
+    'Eggs',
+    'Milk',
+    'Soy (in some chocolate)'
+  ],
+  doughRestHours: 2,
+  spreadFactor: 1.2
+}
+==> [5/6] Running aggregations (04_aggregations.js)
+==================================================
+A. Average baking temperature per oven per day
+==================================================
+[
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-05'
+    },
+    avgTempC: 225.95811320754717,
+    maxTempC: 237.9,
+    minTempC: 210.3,
+    readingCount: 265
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-05'
+    },
+    avgTempC: 236.14075471698115,
+    maxTempC: 248,
+    minTempC: 220,
+    readingCount: 265
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-05'
+    },
+    avgTempC: 247.0233962264151,
+    maxTempC: 257.9,
+    minTempC: 230.9,
+    readingCount: 265
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-05'
+    },
+    avgTempC: 205.9588679245283,
+    maxTempC: 218,
+    minTempC: 190.1,
+    readingCount: 265
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-06'
+    },
+    avgTempC: 221.61923611111112,
+    maxTempC: 237.9,
+    minTempC: 210,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-06'
+    },
+    avgTempC: 231.7217361111111,
+    maxTempC: 247.9,
+    minTempC: 220,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-06'
+    },
+    avgTempC: 241.71805555555557,
+    maxTempC: 258,
+    minTempC: 230,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-06'
+    },
+    avgTempC: 201.55756944444445,
+    maxTempC: 218,
+    minTempC: 190,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-07'
+    },
+    avgTempC: 221.65381944444445,
+    maxTempC: 238,
+    minTempC: 210,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-07'
+    },
+    avgTempC: 231.94,
+    maxTempC: 248,
+    minTempC: 220,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-07'
+    },
+    avgTempC: 241.88166666666666,
+    maxTempC: 258,
+    minTempC: 230,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-07'
+    },
+    avgTempC: 201.71555555555557,
+    maxTempC: 217.9,
+    minTempC: 190,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-08'
+    },
+    avgTempC: 221.51743055555553,
+    maxTempC: 238,
+    minTempC: 210,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-08'
+    },
+    avgTempC: 231.92416666666665,
+    maxTempC: 248,
+    minTempC: 220,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-08'
+    },
+    avgTempC: 241.30555555555554,
+    maxTempC: 257.9,
+    minTempC: 230,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-08'
+    },
+    avgTempC: 201.55249999999998,
+    maxTempC: 217.9,
+    minTempC: 190,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-09'
+    },
+    avgTempC: 221.67715277777776,
+    maxTempC: 238,
+    minTempC: 210,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-09'
+    },
+    avgTempC: 231.80833333333334,
+    maxTempC: 247.9,
+    minTempC: 220,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-09'
+    },
+    avgTempC: 241.6823611111111,
+    maxTempC: 257.8,
+    minTempC: 230.1,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-09'
+    },
+    avgTempC: 201.65555555555557,
+    maxTempC: 218,
+    minTempC: 190,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-10'
+    },
+    avgTempC: 221.72833333333332,
+    maxTempC: 237.9,
+    minTempC: 210,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-10'
+    },
+    avgTempC: 231.81069444444447,
+    maxTempC: 248,
+    minTempC: 220.1,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-10'
+    },
+    avgTempC: 241.80229166666666,
+    maxTempC: 257.9,
+    minTempC: 230.1,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-10'
+    },
+    avgTempC: 201.70368055555554,
+    maxTempC: 218,
+    minTempC: 190,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-11'
+    },
+    avgTempC: 221.63583333333332,
+    maxTempC: 237.9,
+    minTempC: 210,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-11'
+    },
+    avgTempC: 231.59583333333333,
+    maxTempC: 248,
+    minTempC: 220,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-11'
+    },
+    avgTempC: 241.76326388888887,
+    maxTempC: 258,
+    minTempC: 230,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-11'
+    },
+    avgTempC: 201.5001388888889,
+    maxTempC: 218,
+    minTempC: 190,
+    readingCount: 1440
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-12'
+    },
+    avgTempC: 220.7188085106383,
+    maxTempC: 237.8,
+    minTempC: 210,
+    readingCount: 1175
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-12'
+    },
+    avgTempC: 230.60212765957448,
+    maxTempC: 248,
+    minTempC: 220,
+    readingCount: 1175
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-12'
+    },
+    avgTempC: 240.46323404255318,
+    maxTempC: 258,
+    minTempC: 230,
+    readingCount: 1175
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-12'
+    },
+    avgTempC: 200.567914893617,
+    maxTempC: 217.8,
+    minTempC: 190.1,
+    readingCount: 1175
+  }
+]
+==================================================
+B. Ovens running too hot (avg daily temp > target + 15C)
+==================================================
+[]
+==================================================
+C. Allergens per product (and an allergen roll-up)
+==================================================
+--- allergens per product ---
+[
+  {
+    productId: 1,
+    name: 'Sourdough loaf',
+    allergens: [
+      'Gluten'
+    ]
+  },
+  {
+    productId: 2,
+    name: 'Baguette',
+    allergens: [
+      'Gluten'
+    ]
+  },
+  {
+    productId: 3,
+    name: 'Brioche',
+    allergens: [
+      'Gluten',
+      'Eggs',
+      'Milk'
+    ]
+  },
+  {
+    productId: 4,
+    name: 'Croissant',
+    allergens: [
+      'Gluten',
+      'Eggs',
+      'Milk'
+    ]
+  },
+  {
+    productId: 5,
+    name: 'Pain au chocolat',
+    allergens: [
+      'Gluten',
+      'Eggs',
+      'Milk',
+      'Soy (in some chocolate)'
+    ]
+  },
+  {
+    productId: 6,
+    name: 'Cinnamon roll',
+    allergens: [
+      'Gluten',
+      'Eggs',
+      'Milk'
+    ]
+  },
+  {
+    productId: 7,
+    name: 'Meat pie',
+    allergens: [
+      'Gluten',
+      'Eggs'
+    ]
+  },
+  {
+    productId: 8,
+    name: 'Chicken pie',
+    allergens: [
+      'Gluten',
+      'Eggs',
+      'Milk'
+    ]
+  },
+  {
+    productId: 9,
+    name: 'Chocolate chip cookie',
+    allergens: [
+      'Gluten',
+      'Eggs',
+      'Milk',
+      'Soy (in some chocolate)'
+    ]
+  },
+  {
+    productId: 10,
+    name: 'Oatmeal raisin cookie',
+    allergens: [
+      'Gluten',
+      'Eggs',
+      'Milk'
+    ]
+  }
+]
+--- allergen roll-up (how many products contain each allergen) ---
+[
+  {
+    _id: 'Gluten',
+    productCount: 10
+  },
+  {
+    _id: 'Eggs',
+    productCount: 8
+  },
+  {
+    _id: 'Milk',
+    productCount: 7
+  },
+  {
+    _id: 'Soy (in some chocolate)',
+    productCount: 2
+  }
+]
+==================================================
+Bonus: door-open events per oven per day
+==================================================
+[
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-05'
+    },
+    openCount: 13
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-05'
+    },
+    openCount: 12
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-05'
+    },
+    openCount: 18
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-05'
+    },
+    openCount: 12
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-06'
+    },
+    openCount: 51
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-06'
+    },
+    openCount: 61
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-06'
+    },
+    openCount: 65
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-06'
+    },
+    openCount: 59
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-07'
+    },
+    openCount: 62
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-07'
+    },
+    openCount: 55
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-07'
+    },
+    openCount: 67
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-07'
+    },
+    openCount: 49
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-08'
+    },
+    openCount: 50
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-08'
+    },
+    openCount: 49
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-08'
+    },
+    openCount: 64
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-08'
+    },
+    openCount: 73
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-09'
+    },
+    openCount: 62
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-09'
+    },
+    openCount: 59
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-09'
+    },
+    openCount: 58
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-09'
+    },
+    openCount: 53
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-10'
+    },
+    openCount: 72
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-10'
+    },
+    openCount: 48
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-10'
+    },
+    openCount: 59
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-10'
+    },
+    openCount: 56
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-11'
+    },
+    openCount: 67
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-11'
+    },
+    openCount: 65
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-11'
+    },
+    openCount: 62
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-11'
+    },
+    openCount: 45
+  },
+  {
+    _id: {
+      ovenId: 'oven-1',
+      day: '2026-11-12'
+    },
+    openCount: 44
+  },
+  {
+    _id: {
+      ovenId: 'oven-2',
+      day: '2026-11-12'
+    },
+    openCount: 55
+  },
+  {
+    _id: {
+      ovenId: 'oven-3',
+      day: '2026-11-12'
+    },
+    openCount: 39
+  },
+  {
+    _id: {
+      ovenId: 'oven-4',
+      day: '2026-11-12'
+    },
+    openCount: 45
+  }
+]
+==> [6/6] Index demo: COLLSCAN -> IXSCAN on 40k docs (05_indexes.js)
+oven_readings documents: 40320
+(no index to drop)
+Index created: ovenId_1_temperature_1
+
+=== P4 INDEX SUMMARY (real explain output) ===
+Query: {"ovenId":"oven-2","temperature":{"$gt":235}}
+Label                  | Stage                 | Docs examined | Keys examined | Docs returned | Time ms
+BEFORE (no index)      | COLLSCAN              |         40320 |             0 |          3347 | 12
+AFTER (compound index) | FETCH > IXSCAN        |          3347 |          3347 |          3347 | 5
+==> Validation tests: two bad documents must be rejected (06_validation_tests.js)
+bad 1: bread without hydrationPct/fermentationHours -> REJECTED: undefined (Document failed validation)
+bad 2: pie with crustType 'rubbery' -> REJECTED: undefined (Document failed validation)
+good : valid cookie (control, must be accepted) -> ACCEPTED
+
+==================================================
+Portfolio 4 complete.
+  Final document counts:
+oven_logs    : 40320
+recipe_cards : 10
+
+  Suggested git commit:
+    git add portfolio-4-nosql && git commit -m 'P4: MongoDB oven_logs + recipe_cards with oneOf validator + aggregations + index demo'
+==================================================

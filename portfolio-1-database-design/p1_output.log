@@ -1,0 +1,191 @@
+==> [1/6] (Re)creating database crumble
+ALTER DATABASE
+==> [2/6] Loading schema (01_schema.sql)
+BEGIN
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+COMMIT
+==> [3/6] Loading constraints + triggers + FIFO (02_constraints_triggers.sql)
+BEGIN
+CREATE FUNCTION
+psql:/workspaces/Sani_Adama_301915592/portfolio-1-database-design/02_constraints_triggers.sql:43: NOTICE:  trigger "trg_check_batch_not_expired" for relation "batch_usage" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+psql:/workspaces/Sani_Adama_301915592/portfolio-1-database-design/02_constraints_triggers.sql:132: NOTICE:  trigger "trg_production_run_after_insert" for relation "production_run" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+psql:/workspaces/Sani_Adama_301915592/portfolio-1-database-design/02_constraints_triggers.sql:156: NOTICE:  trigger "trg_outlet_stock_no_negative" for relation "outlet_stock" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+COMMIT
+Schema objects created. Listing constraints:
+     List of data types
+ Schema | Name | Description 
+--------+------+-------------
+(0 rows)
+
+Triggers:
+             tgname              |    on_table    | tgenabled 
+---------------------------------+----------------+-----------
+ trg_production_run_after_insert | production_run | O
+ trg_check_batch_not_expired     | batch_usage    | O
+ trg_outlet_stock_no_negative    | outlet_stock   | O
+(3 rows)
+
+==> [4/6] Loading seed data (03_seed.sql)
+BEGIN
+INSERT 0 3
+INSERT 0 5
+INSERT 0 16
+INSERT 0 10
+INSERT 0 57
+COMMIT
+BEGIN
+INSERT 0 16
+COMMIT
+Seed data inserted. Row counts:
+    table_name    | count 
+------------------+-------
+ outlet           |     3
+ supplier         |     5
+ ingredient       |    16
+ product          |    10
+ recipe_line      |    57
+ ingredient_batch |    16
+(6 rows)
+
+==> [5/6] Bulk-generating 240 days of data (04_bulk_generate.sql)
+Timing is on.
+TRUNCATE TABLE
+Time: 17.325 ms
+DELETE 16
+Time: 2.730 ms
+INSERT 0 560
+Time: 12.837 ms
+Ingredient batches inserted:
+ batches |  total_qty   
+---------+--------------
+     560 | 22404760.000
+(1 row)
+
+Time: 0.586 ms
+DO
+Time: 57951.033 ms (00:57.951)
+Production runs + outlet_stock inserted:
+ runs | units_baked 
+------+-------------
+ 2410 |      488348
+(1 row)
+
+Time: 0.627 ms
+ stock_rows | total_stock 
+------------+-------------
+       7230 |      488832
+(1 row)
+
+Time: 0.628 ms
+SELECT 31386
+Time: 529.422 ms
+SELECT 62729
+Time: 78.621 ms
+SELECT 62727
+Time: 99.521 ms
+INSERT 0 31385
+Time: 354.390 ms
+ setval 
+--------
+  31386
+(1 row)
+
+Time: 1.291 ms
+INSERT 0 62727
+Time: 911.833 ms
+UPDATE 7195
+Time: 131.958 ms
+Final row counts:
+   table_name   | count 
+----------------+-------
+ production_run |  2410
+ batch_usage    | 13739
+ outlet_stock   |  7230
+ sale           | 31385
+ sale_line      | 62727
+(5 rows)
+
+Time: 39.733 ms
+Stock never negative? (both should be 0):
+        check        | count 
+---------------------+-------
+ ingredient_batch <0 |     0
+ outlet_stock <0     |     0
+(2 rows)
+
+Time: 13.124 ms
+==> [6/6] Running constraint tests (05_constraint_tests.sql)
+psql:/workspaces/Sani_Adama_301915592/portfolio-1-database-design/05_constraint_tests.sql:15: NOTICE:  table "_test_results" does not exist, skipping
+DROP TABLE
+CREATE TABLE
+DO
+DO
+DO
+DO
+DO
+DO
+DO
+DO
+DO
+DO
+DELETE 0
+DELETE 0
+DELETE 0
+==================================================
+CONSTRAINT TEST RESULTS
+==================================================
+        test_name         | outcome |                                                                                detail                                                                                
+--------------------------+---------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ counter_sale_with_name   | PASSED  | CHECK (channel/customer_name) rejected counter sale with name: new row for relation "sale" violates check constraint "sale_check"
+ dup_outlet_stock_row     | PASSED  | UNIQUE (outlet_id, product_id, stock_date) rejected duplicate: duplicate key value violates unique constraint "outlet_stock_outlet_id_product_id_stock_date_key"
+ expiry_before_received   | PASSED  | CHECK (expiry_date > received_date) rejected backwards dates: new row for relation "ingredient_batch" violates check constraint "ingredient_batch_check"
+ neg_ingredient_batch_qty | PASSED  | CHECK on ingredient_batch.quantity_left rejected -5: new row for relation "ingredient_batch" violates check constraint "ingredient_batch_quantity_left_check"
+ neg_outlet_stock_qty     | PASSED  | CHECK on outlet_stock.quantity_left rejected -3: outlet_stock would go negative for outlet 1 product 1 on 2026-11-12 (tried -3)
+ online_sale_no_name      | PASSED  | CHECK (channel/customer_name) rejected online sale with NULL name: new row for relation "sale" violates check constraint "sale_check"
+ run_insufficient_stock   | PASSED  | consume_batches_fifo correctly rejected run needing more stock than available: Not enough unexpired stock of ingredient 19 for run 2412 (still need 49.500)
+ use_expired_batch        | PASSED  | trigger trg_check_batch_not_expired rejected expired batch: Ingredient batch 579 expired on 2026-11-07 — cannot be used in production run 2411 (run date 2026-11-12)
+ zero_product_price       | PASSED  | CHECK on product.unit_price rejected 0: new row for relation "product" violates check constraint "product_unit_price_check"
+ zero_sale_line_qty       | PASSED  | CHECK on sale_line.quantity rejected 0: new row for relation "sale_line" violates check constraint "sale_line_quantity_check"
+(10 rows)
+
+==================================================
+Total passed:
+ count 
+-------
+    10
+(1 row)
+
+Total failed:
+ count 
+-------
+     0
+(1 row)
+
+DROP TABLE
+
+==================================================
+Portfolio 1 complete.
+  ER diagram: /workspaces/Sani_Adama_301915592/portfolio-1-database-design/er_diagram.md (renders on GitHub)
+  Suggested git commit:
+    git add portfolio-1-database-design && git commit -m 'P1: schema, constraints, FIFO, seed, 240-day bulk data, tests'
+==================================================

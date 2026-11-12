@@ -1,0 +1,51 @@
+Pager usage is off.
+=== STEP 1: PRIMARY - who am I? ===
+You are now connected to database "crumble" as user "codespace".
+ port | is_replica | sale_lines 
+------+------------+------------
+ 5432 | f          |      62727
+(1 row)
+
+DELETE 0
+=== STEP 2: PRIMARY - insert one new row (a marker supplier) ===
+INSERT 0 1
+ primary_wal_position 
+----------------------
+ 0/70005A0
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+=== STEP 3: REPLICA - who am I? ===
+You are now connected to database "crumble" as user "codespace" via socket in "/var/run/postgresql" at port "5433".
+ port | is_replica | sale_lines 
+------+------------+------------
+ 5433 | t          |      62727
+(1 row)
+
+=== STEP 4: REPLICA - the new row arrived (read works) ===
+ supplier_id |         name          
+-------------+-----------------------
+           7 | Replica Demo Supplier
+(1 row)
+
+=== STEP 5: REPLICA - a WRITE must be rejected (read-only standby) ===
+psql:/workspaces/Sani_Adama_301915592/portfolio-5-distributed-cloud/03_replica_demo.sql:25: ERROR:  cannot execute INSERT in a read-only transaction
+=== STEP 6: REPLICA - replication position and lag ===
+ replica_replayed_lsn | time_since_last_replayed_commit 
+----------------------+---------------------------------
+ 0/70005A0            | 00:00:01.016132
+(1 row)
+
+=== STEP 7: PRIMARY - replication status and cleanup ===
+You are now connected to database "crumble" as user "codespace" via socket in "/var/run/postgresql" at port "5432".
+ application_name |   state   | sync_state | sent_lsn  | replay_lsn |   replay_lag    
+------------------+-----------+------------+-----------+------------+-----------------
+ walreceiver      | streaming | async      | 0/70005A0 | 0/70005A0  | 00:00:00.225659
+(1 row)
+
+DELETE 1
+=== Replica demo finished ===

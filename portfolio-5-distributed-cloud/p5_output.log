@@ -1,0 +1,359 @@
+==> [1/4] Verifying P1 data exists
+    sale_line has 62727 rows — good.
+==> [2/4] Partition sale_line by month (01_partition.sql)
+Pager usage is off.
+DROP TABLE
+CREATE TABLE
+DO
+CREATE TABLE
+Partitions created:
+      partition      
+---------------------
+ sale_line_p_202602
+ sale_line_p_202603
+ sale_line_p_202604
+ sale_line_p_202605
+ sale_line_p_202606
+ sale_line_p_202607
+ sale_line_p_202608
+ sale_line_p_202609
+ sale_line_p_202610
+ sale_line_p_202611
+ sale_line_p_202612
+ sale_line_p_default
+(12 rows)
+
+INSERT 0 62727
+Rows in partitioned table:
+ total_rows 
+------------
+      62727
+(1 row)
+
+Rows per partition (exact counts):
+     partition      | rows 
+--------------------+------
+ sale_line_p_202603 | 4010
+ sale_line_p_202604 | 7792
+ sale_line_p_202605 | 8313
+ sale_line_p_202606 | 7725
+ sale_line_p_202607 | 8054
+ sale_line_p_202608 | 8007
+ sale_line_p_202609 | 7755
+ sale_line_p_202610 | 8246
+ sale_line_p_202611 | 2825
+(9 rows)
+
+Rows in the DEFAULT partition (must be 0):
+ default_partition_rows 
+------------------------
+                      0
+(1 row)
+
+CREATE INDEX
+CREATE INDEX
+ANALYZE
+Indexes on partitioned table:
+     tablename      |             indexname             
+--------------------+-----------------------------------
+ sale_line_p_202602 | sale_line_p_202602_pkey
+ sale_line_p_202602 | sale_line_p_202602_product_id_idx
+ sale_line_p_202602 | sale_line_p_202602_sale_id_idx
+ sale_line_p_202603 | sale_line_p_202603_pkey
+ sale_line_p_202603 | sale_line_p_202603_product_id_idx
+ sale_line_p_202603 | sale_line_p_202603_sale_id_idx
+ sale_line_p_202604 | sale_line_p_202604_pkey
+ sale_line_p_202604 | sale_line_p_202604_product_id_idx
+ sale_line_p_202604 | sale_line_p_202604_sale_id_idx
+ sale_line_p_202605 | sale_line_p_202605_pkey
+ sale_line_p_202605 | sale_line_p_202605_product_id_idx
+ sale_line_p_202605 | sale_line_p_202605_sale_id_idx
+ sale_line_p_202606 | sale_line_p_202606_pkey
+ sale_line_p_202606 | sale_line_p_202606_product_id_idx
+ sale_line_p_202606 | sale_line_p_202606_sale_id_idx
+ sale_line_p_202607 | sale_line_p_202607_pkey
+ sale_line_p_202607 | sale_line_p_202607_product_id_idx
+ sale_line_p_202607 | sale_line_p_202607_sale_id_idx
+ sale_line_p_202608 | sale_line_p_202608_pkey
+ sale_line_p_202608 | sale_line_p_202608_product_id_idx
+(20 rows)
+
+==================================================
+EXPLAIN: query scoped to last month — should prune to ONE partition
+==================================================
+                                                                                                       QUERY PLAN                                                                                                       
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=846.65..846.66 rows=1 width=16) (actual time=0.608..0.609 rows=1 loops=1)
+   Buffers: shared hit=69 read=2
+   ->  Append  (cost=0.00..842.23 rows=884 width=4) (actual time=0.041..0.560 rows=873 loops=1)
+         Buffers: shared hit=69 read=2
+         Subplans Removed: 11
+         ->  Bitmap Heap Scan on sale_line_p_202610 sale_line_partitioned_1  (cost=15.05..114.61 rows=873 width=4) (actual time=0.041..0.502 rows=873 loops=1)
+               Recheck Cond: (product_id = 4)
+               Filter: ((sale_time < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (sale_time >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval)))
+               Heap Blocks: exact=69
+               Buffers: shared hit=69 read=2
+               ->  Bitmap Index Scan on sale_line_p_202610_product_id_idx  (cost=0.00..14.83 rows=873 width=0) (actual time=0.028..0.028 rows=873 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+ Planning:
+   Buffers: shared hit=274 read=24
+ Planning Time: 1.186 ms
+ Execution Time: 0.638 ms
+(17 rows)
+
+==================================================
+SAME one-month query on the UNPARTITIONED sale_line + sale (for comparison)
+==================================================
+                                                                                                               QUERY PLAN                                                                                                               
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=1101.10..1101.11 rows=1 width=16) (actual time=3.241..3.243 rows=1 loops=1)
+   Buffers: shared hit=523
+   ->  Hash Join  (cost=598.35..1096.89 rows=843 width=4) (actual time=2.849..3.194 rows=873 loops=1)
+         Hash Cond: (sl.sale_id = s.sale_id)
+         Buffers: shared hit=523
+         ->  Bitmap Heap Scan on sale_line sl  (cost=74.78..556.22 rows=6515 width=8) (actual time=0.229..1.452 rows=6307 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=400
+               Buffers: shared hit=408
+               ->  Bitmap Index Scan on ix_sale_line_product  (cost=0.00..73.15 rows=6515 width=0) (actual time=0.174..0.174 rows=6307 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared hit=8
+         ->  Hash  (cost=472.83..472.83 rows=4059 width=4) (actual time=1.107..1.108 rows=4091 loops=1)
+               Buckets: 4096  Batches: 1  Memory Usage: 176kB
+               Buffers: shared hit=115
+               ->  Bitmap Heap Scan on sale s  (cost=89.91..472.83 rows=4059 width=4) (actual time=0.184..0.766 rows=4091 loops=1)
+                     Recheck Cond: ((sale_time >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval)) AND (sale_time < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)))
+                     Heap Blocks: exact=102
+                     Buffers: shared hit=115
+                     ->  Bitmap Index Scan on ix_sale_time  (cost=0.00..88.89 rows=4059 width=0) (actual time=0.170..0.170 rows=4091 loops=1)
+                           Index Cond: ((sale_time >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval)) AND (sale_time < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)))
+                           Buffers: shared hit=13
+ Planning:
+   Buffers: shared hit=18
+ Planning Time: 0.262 ms
+ Execution Time: 3.273 ms
+(26 rows)
+
+==================================================
+EXPLAIN: query with NO time filter — must scan ALL partitions
+==================================================
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=744.58..744.59 rows=1 width=8) (actual time=2.438..2.443 rows=1 loops=1)
+   Buffers: shared hit=528 read=16
+   ->  Append  (cost=0.00..728.81 rows=6310 width=0) (actual time=0.053..2.129 rows=6307 loops=1)
+         Buffers: shared hit=528 read=16
+         ->  Seq Scan on sale_line_p_202602 sale_line_partitioned_1  (cost=0.00..0.00 rows=1 width=0) (actual time=0.002..0.003 rows=0 loops=1)
+               Filter: (product_id = 4)
+         ->  Bitmap Heap Scan on sale_line_p_202603 sale_line_partitioned_2  (cost=7.43..46.50 rows=406 width=0) (actual time=0.049..0.205 rows=406 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=34
+               Buffers: shared hit=34 read=2
+               ->  Bitmap Index Scan on sale_line_p_202603_product_id_idx  (cost=0.00..7.33 rows=406 width=0) (actual time=0.040..0.040 rows=406 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Bitmap Heap Scan on sale_line_p_202604 sale_line_partitioned_3  (cost=10.24..84.85 rows=769 width=0) (actual time=0.047..0.258 rows=769 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=65
+               Buffers: shared hit=65 read=2
+               ->  Bitmap Index Scan on sale_line_p_202604_product_id_idx  (cost=0.00..10.05 rows=769 width=0) (actual time=0.037..0.037 rows=769 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Bitmap Heap Scan on sale_line_p_202605 sale_line_partitioned_4  (cost=10.57..90.71 rows=811 width=0) (actual time=0.036..0.192 rows=811 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=70
+               Buffers: shared hit=70 read=2
+               ->  Bitmap Index Scan on sale_line_p_202605_product_id_idx  (cost=0.00..10.37 rows=811 width=0) (actual time=0.027..0.027 rows=811 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Bitmap Heap Scan on sale_line_p_202606 sale_line_partitioned_5  (cost=10.65..85.91 rows=821 width=0) (actual time=0.031..0.192 rows=821 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=65
+               Buffers: shared hit=65 read=2
+               ->  Bitmap Index Scan on sale_line_p_202606_product_id_idx  (cost=0.00..10.44 rows=821 width=0) (actual time=0.024..0.024 rows=821 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Bitmap Heap Scan on sale_line_p_202607 sale_line_partitioned_6  (cost=10.41..88.30 rows=791 width=0) (actual time=0.039..0.186 rows=791 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=67
+               Buffers: shared hit=67 read=2
+               ->  Bitmap Index Scan on sale_line_p_202607_product_id_idx  (cost=0.00..10.22 rows=791 width=0) (actual time=0.031..0.031 rows=791 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Bitmap Heap Scan on sale_line_p_202608 sale_line_partitioned_7  (cost=10.64..87.89 rows=820 width=0) (actual time=0.028..0.183 rows=820 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=67
+               Buffers: shared hit=67 read=2
+               ->  Bitmap Index Scan on sale_line_p_202608_product_id_idx  (cost=0.00..10.43 rows=820 width=0) (actual time=0.023..0.023 rows=820 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Bitmap Heap Scan on sale_line_p_202609 sale_line_partitioned_8  (cost=9.99..84.19 rows=736 width=0) (actual time=0.026..0.167 rows=736 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=65
+               Buffers: shared hit=65 read=2
+               ->  Bitmap Index Scan on sale_line_p_202609_product_id_idx  (cost=0.00..9.80 rows=736 width=0) (actual time=0.021..0.021 rows=736 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Bitmap Heap Scan on sale_line_p_202610 sale_line_partitioned_9  (cost=15.05..94.96 rows=873 width=0) (actual time=0.022..0.197 rows=873 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=69
+               Buffers: shared hit=71
+               ->  Bitmap Index Scan on sale_line_p_202610_product_id_idx  (cost=0.00..14.83 rows=873 width=0) (actual time=0.015..0.015 rows=873 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared hit=2
+         ->  Bitmap Heap Scan on sale_line_p_202611 sale_line_partitioned_10  (cost=6.45..33.95 rows=280 width=0) (actual time=0.019..0.073 rows=280 loops=1)
+               Recheck Cond: (product_id = 4)
+               Heap Blocks: exact=24
+               Buffers: shared hit=24 read=2
+               ->  Bitmap Index Scan on sale_line_p_202611_product_id_idx  (cost=0.00..6.38 rows=280 width=0) (actual time=0.015..0.015 rows=280 loops=1)
+                     Index Cond: (product_id = 4)
+                     Buffers: shared read=2
+         ->  Seq Scan on sale_line_p_202612 sale_line_partitioned_11  (cost=0.00..0.00 rows=1 width=0) (actual time=0.004..0.004 rows=0 loops=1)
+               Filter: (product_id = 4)
+         ->  Seq Scan on sale_line_p_default sale_line_partitioned_12  (cost=0.00..0.00 rows=1 width=0) (actual time=0.002..0.002 rows=0 loops=1)
+               Filter: (product_id = 4)
+ Planning:
+   Buffers: shared hit=9
+ Planning Time: 0.400 ms
+ Execution Time: 2.498 ms
+(77 rows)
+
+==================================================
+EXPLAIN: query scoped to a 3-month window — 3 partitions
+==================================================
+                                                                                                       QUERY PLAN                                                                                                        
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=2222.40..2222.41 rows=1 width=8) (actual time=18.322..18.324 rows=1 loops=1)
+   Buffers: shared hit=201
+   ->  Append  (cost=0.00..2162.37 rows=24013 width=0) (actual time=0.007..16.886 rows=24008 loops=1)
+         Buffers: shared hit=201
+         Subplans Removed: 9
+         ->  Seq Scan on sale_line_p_202608 sale_line_partitioned_1  (cost=0.00..327.23 rows=8006 width=0) (actual time=0.007..4.720 rows=8007 loops=1)
+               Filter: ((sale_time < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (sale_time >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '3 mons'::interval)))
+               Buffers: shared hit=67
+         ->  Seq Scan on sale_line_p_202609 sale_line_partitioned_2  (cost=0.00..317.04 rows=7754 width=0) (actual time=0.010..5.298 rows=7755 loops=1)
+               Filter: ((sale_time < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (sale_time >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '3 mons'::interval)))
+               Buffers: shared hit=65
+         ->  Seq Scan on sale_line_p_202610 sale_line_partitioned_3  (cost=0.00..337.00 rows=8244 width=0) (actual time=0.008..4.962 rows=8246 loops=1)
+               Filter: ((sale_time < date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone)) AND (sale_time >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '3 mons'::interval)))
+               Buffers: shared hit=69
+ Planning:
+   Buffers: shared hit=9
+ Planning Time: 0.441 ms
+ Execution Time: 18.350 ms
+(18 rows)
+
+==================================================
+Per-month croissant sales (from partitioned table):
+==================================================
+  month  | n_lines | units_sold | revenue_ngn 
+---------+---------+------------+-------------
+ 2026-11 |     280 |        435 |   522000.00
+ 2026-10 |     873 |       1305 |  1566000.00
+ 2026-09 |     736 |       1099 |  1318800.00
+ 2026-08 |     820 |       1243 |  1491600.00
+ 2026-07 |     791 |       1201 |  1441200.00
+ 2026-06 |     821 |       1212 |  1454400.00
+ 2026-05 |     811 |       1229 |  1474800.00
+ 2026-04 |     769 |       1165 |  1398000.00
+ 2026-03 |     406 |        605 |   726000.00
+(9 rows)
+
+==> [3/4] Set up the streaming read replica (02_replica_setup.sh)
+==> [1/9] Create replication role on primary (idempotent)
+==> [2/9] Configure primary: wal_level, max_wal_senders, listen_addresses
+==> [3/9] Prepend trust lines for replication to primary pg_hba.conf
+==> [4/9] Restart primary to apply wal_level etc.
+t
+==> [5/9] Stop any existing replica and wipe the replica data dir
+==> [6/9] pg_basebackup from primary (Unix socket, no password)
+waiting for checkpoint
+59137/59137 kB (100%), 0/1 tablespace
+59137/59137 kB (100%), 1/1 tablespace
+==> [7/9] Write replica's own postgresql.conf (Debian layout requires it)
+==> [8/9] Copy pg_hba.conf + pg_ident.conf from primary; prepend trust
+==> [9/9] Start the replica
+waiting for server to start.... done
+server started
+
+==================================================
+Streaming replica is up.
+  Primary : psql -h /var/run/postgresql -p 5432 -d crumble
+  Replica : psql -h /var/run/postgresql -p 5433 -d crumble
+==================================================
+Verifying replica is in recovery mode:
+ in_recovery 
+-------------
+ t
+(1 row)
+
+Replication status on primary:
+ application_name |   state   | sync_state | sent_lsn  | replay_lsn 
+------------------+-----------+------------+-----------+------------
+ walreceiver      | streaming | async      | 0/7000000 | 0/7000000
+(1 row)
+
+==> [4/4] Run the replica demo (03_replica_demo.sql) — switches servers with \connect
+Pager usage is off.
+=== STEP 1: PRIMARY - who am I? ===
+You are now connected to database "crumble" as user "codespace".
+ port | is_replica | sale_lines 
+------+------------+------------
+ 5432 | f          |      62727
+(1 row)
+
+DELETE 0
+=== STEP 2: PRIMARY - insert one new row (a marker supplier) ===
+INSERT 0 1
+ primary_wal_position 
+----------------------
+ 0/70005A0
+(1 row)
+
+ pg_sleep 
+----------
+ 
+(1 row)
+
+=== STEP 3: REPLICA - who am I? ===
+You are now connected to database "crumble" as user "codespace" via socket in "/var/run/postgresql" at port "5433".
+ port | is_replica | sale_lines 
+------+------------+------------
+ 5433 | t          |      62727
+(1 row)
+
+=== STEP 4: REPLICA - the new row arrived (read works) ===
+ supplier_id |         name          
+-------------+-----------------------
+           7 | Replica Demo Supplier
+(1 row)
+
+=== STEP 5: REPLICA - a WRITE must be rejected (read-only standby) ===
+psql:/workspaces/Sani_Adama_301915592/portfolio-5-distributed-cloud/03_replica_demo.sql:25: ERROR:  cannot execute INSERT in a read-only transaction
+=== STEP 6: REPLICA - replication position and lag ===
+ replica_replayed_lsn | time_since_last_replayed_commit 
+----------------------+---------------------------------
+ 0/70005A0            | 00:00:01.016132
+(1 row)
+
+=== STEP 7: PRIMARY - replication status and cleanup ===
+You are now connected to database "crumble" as user "codespace" via socket in "/var/run/postgresql" at port "5432".
+ application_name |   state   | sync_state | sent_lsn  | replay_lsn |   replay_lag    
+------------------+-----------+------------+-----------+------------+-----------------
+ walreceiver      | streaming | async      | 0/70005A0 | 0/70005A0  | 00:00:00.225659
+(1 row)
+
+DELETE 1
+=== Replica demo finished ===
+
+==================================================
+Portfolio 5 (scripted part) complete.
+
+Read the cloud architecture note:
+  /workspaces/Sani_Adama_301915592/portfolio-5-distributed-cloud/04_cloud_architecture.md
+  (NDPA 2023, CAP trade-offs, sync vs async, offline outlets)
+
+Suggested git commit:
+  git add portfolio-5-distributed-cloud && git commit -m 'P5: sale_line partitioning + primary/replica + NDPA cloud architecture'
+==================================================

@@ -1,0 +1,178 @@
+===== Q1 (before) =====
+Sort (actual time=0.847..0.850 rows=30 loops=1)
+  Sort Key: o.name, os.quantity_left DESC, p.name
+  Sort Method: quicksort  Memory: 26kB
+  ->  Hash Join (actual time=0.238..0.806 rows=30 loops=1)
+        Hash Cond: (os.product_id = p.product_id)
+        ->  Nested Loop (actual time=0.209..0.773 rows=30 loops=1)
+              Join Filter: (os.outlet_id = o.outlet_id)
+              Rows Removed by Join Filter: 30
+              ->  Seq Scan on outlet_stock os (actual time=0.202..0.754 rows=30 loops=1)
+                    Filter: (stock_date = CURRENT_DATE)
+                    Rows Removed by Filter: 7200
+              ->  Materialize (actual time=0.000..0.000 rows=2 loops=30)
+                    ->  Seq Scan on outlet o (actual time=0.002..0.002 rows=3 loops=1)
+        ->  Hash (actual time=0.013..0.014 rows=10 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              ->  Seq Scan on product p (actual time=0.002..0.003 rows=10 loops=1)
+Planning Time: 0.657 ms
+Execution Time: 0.899 ms
+
+===== Q2 (before) =====
+Sort (actual time=166.379..166.388 rows=27 loops=1)
+  Sort Key: ranked.yyyymm, ranked.outlet
+  Sort Method: quicksort  Memory: 27kB
+  ->  Subquery Scan on ranked (actual time=100.972..166.341 rows=27 loops=1)
+        Filter: (ranked.rn = 1)
+        ->  WindowAgg (actual time=100.970..166.332 rows=27 loops=1)
+              Run Condition: (row_number() OVER (?) <= 1)
+              ->  Incremental Sort (actual time=100.961..166.265 rows=270 loops=1)
+                    Sort Key: monthly.outlet_id, monthly.yyyymm, monthly.qty_sold DESC
+                    Presorted Key: monthly.outlet_id, monthly.yyyymm
+                    Full-sort Groups: 7  Sort Method: quicksort  Average Memory: 28kB  Peak Memory: 28kB
+                    ->  Subquery Scan on monthly (actual time=98.805..166.049 rows=270 loops=1)
+                          ->  GroupAggregate (actual time=98.803..166.011 rows=270 loops=1)
+                                Group Key: o.outlet_id, (to_char(s.sale_time, 'YYYY-MM'::text)), p.name
+                                ->  Incremental Sort (actual time=98.760..158.705 rows=62727 loops=1)
+                                      Sort Key: o.outlet_id, (to_char(s.sale_time, 'YYYY-MM'::text)), p.name
+                                      Presorted Key: o.outlet_id
+                                      Full-sort Groups: 3  Sort Method: quicksort  Average Memory: 29kB  Peak Memory: 29kB
+                                      Pre-sorted Groups: 3  Sort Method: quicksort  Average Memory: 2385kB  Peak Memory: 2427kB
+                                      ->  Nested Loop (actual time=8.107..116.838 rows=62727 loops=1)
+                                            Join Filter: (o.outlet_id = s.outlet_id)
+                                            Rows Removed by Join Filter: 125454
+                                            ->  Index Scan using outlet_pkey on outlet o (actual time=0.004..0.021 rows=3 loops=1)
+                                            ->  Materialize (actual time=2.668..26.929 rows=62727 loops=3)
+                                                  ->  Hash Join (actual time=7.979..46.359 rows=62727 loops=1)
+                                                        Hash Cond: (sl.product_id = p.product_id)
+                                                        ->  Hash Join (actual time=7.945..35.637 rows=62727 loops=1)
+                                                              Hash Cond: (sl.sale_id = s.sale_id)
+                                                              ->  Seq Scan on sale_line sl (actual time=0.004..6.206 rows=62727 loops=1)
+                                                              ->  Hash (actual time=7.806..7.808 rows=31385 loops=1)
+                                                                    Buckets: 32768  Batches: 1  Memory Usage: 1728kB
+                                                                    ->  Seq Scan on sale s (actual time=0.008..3.486 rows=31385 loops=1)
+                                                        ->  Hash (actual time=0.017..0.018 rows=10 loops=1)
+                                                              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                              ->  Seq Scan on product p (actual time=0.005..0.007 rows=10 loops=1)
+Planning Time: 0.983 ms
+Execution Time: 167.348 ms
+
+===== Q3 (before) =====
+Sort (actual time=0.600..0.603 rows=9 loops=1)
+  Sort Key: b.expiry_date, i.name
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop Left Join (actual time=0.525..0.563 rows=9 loops=1)
+        Join Filter: (s.supplier_id = b.supplier_id)
+        Rows Removed by Join Filter: 16
+        ->  Hash Join (actual time=0.513..0.543 rows=9 loops=1)
+              Hash Cond: (b.ingredient_id = i.ingredient_id)
+              ->  Seq Scan on ingredient_batch b (actual time=0.476..0.502 rows=9 loops=1)
+                    Filter: ((quantity_left > '0'::numeric) AND (expiry_date >= CURRENT_DATE) AND (expiry_date <= (CURRENT_DATE + '3 days'::interval)))
+                    Rows Removed by Filter: 551
+              ->  Hash (actual time=0.020..0.021 rows=16 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    ->  Seq Scan on ingredient i (actual time=0.003..0.005 rows=16 loops=1)
+        ->  Materialize (actual time=0.001..0.001 rows=3 loops=9)
+              ->  Seq Scan on supplier s (actual time=0.005..0.005 rows=5 loops=1)
+Planning Time: 0.897 ms
+Execution Time: 0.711 ms
+
+===== Q4 (before) =====
+Limit (actual time=6.127..6.145 rows=50 loops=1)
+  ->  Sort (actual time=6.126..6.140 rows=50 loops=1)
+        Sort Key: os.stock_date DESC, o.name, os.quantity_left DESC
+        Sort Method: top-N heapsort  Memory: 33kB
+        ->  Hash Join (actual time=0.086..2.820 rows=7197 loops=1)
+              Hash Cond: (os.product_id = p.product_id)
+              ->  Hash Join (actual time=0.065..1.934 rows=7197 loops=1)
+                    Hash Cond: (os.outlet_id = o.outlet_id)
+                    ->  Seq Scan on outlet_stock os (actual time=0.036..1.036 rows=7197 loops=1)
+                          Filter: ((quantity_left > 0) AND (stock_date < CURRENT_DATE))
+                          Rows Removed by Filter: 33
+                    ->  Hash (actual time=0.013..0.023 rows=3 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          ->  Seq Scan on outlet o (actual time=0.002..0.003 rows=3 loops=1)
+              ->  Hash (actual time=0.006..0.006 rows=10 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    ->  Seq Scan on product p (actual time=0.001..0.002 rows=10 loops=1)
+Planning Time: 0.706 ms
+Execution Time: 6.201 ms
+
+===== Q5 (before) =====
+Sort (actual time=0.141..0.143 rows=10 loops=1)
+  Sort Key: (round((((p.unit_price - sum((rl.quantity_per_unit * i.unit_cost))) / NULLIF(p.unit_price, '0'::numeric)) * '100'::numeric), 1)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  ->  HashAggregate (actual time=0.106..0.116 rows=10 loops=1)
+        Group Key: p.product_id
+        Batches: 1  Memory Usage: 24kB
+        ->  Hash Join (actual time=0.051..0.072 rows=57 loops=1)
+              Hash Cond: (rl.ingredient_id = i.ingredient_id)
+              ->  Hash Join (actual time=0.024..0.037 rows=57 loops=1)
+                    Hash Cond: (rl.product_id = p.product_id)
+                    ->  Seq Scan on recipe_line rl (actual time=0.002..0.005 rows=57 loops=1)
+                    ->  Hash (actual time=0.008..0.008 rows=10 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          ->  Seq Scan on product p (actual time=0.001..0.002 rows=10 loops=1)
+              ->  Hash (actual time=0.018..0.018 rows=16 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    ->  Seq Scan on ingredient i (actual time=0.004..0.006 rows=16 loops=1)
+Planning Time: 0.661 ms
+Execution Time: 0.229 ms
+
+===== Q6 (before) =====
+GroupAggregate (actual time=57.453..73.561 rows=12 loops=1)
+  Group Key: ((EXTRACT(hour FROM s.sale_time))::integer)
+  ->  Sort (actual time=54.878..59.070 rows=62727 loops=1)
+        Sort Key: ((EXTRACT(hour FROM s.sale_time))::integer)
+        Sort Method: external merge  Disk: 1888kB
+        ->  Hash Join (actual time=9.866..39.445 rows=62727 loops=1)
+              Hash Cond: (sl.sale_id = s.sale_id)
+              ->  Seq Scan on sale_line sl (actual time=0.009..4.642 rows=62727 loops=1)
+              ->  Hash (actual time=9.686..9.687 rows=31385 loops=1)
+                    Buckets: 32768  Batches: 1  Memory Usage: 1850kB
+                    ->  Seq Scan on sale s (actual time=0.013..4.031 rows=31385 loops=1)
+Planning Time: 0.930 ms
+Execution Time: 74.165 ms
+
+===== Q7 (before) =====
+GroupAggregate (actual time=11.138..13.460 rows=12 loops=1)
+  Group Key: (to_char(s.sale_time, 'YYYY-MM'::text)), o.name
+  ->  Sort (actual time=10.976..11.582 rows=11774 loops=1)
+        Sort Key: (to_char(s.sale_time, 'YYYY-MM'::text)), o.name
+        Sort Method: quicksort  Memory: 1120kB
+        ->  Hash Join (actual time=1.698..7.765 rows=11774 loops=1)
+              Hash Cond: (s.outlet_id = o.outlet_id)
+              ->  Seq Scan on sale s (actual time=1.584..3.350 rows=11774 loops=1)
+                    Filter: (sale_time >= (CURRENT_DATE - 90))
+                    Rows Removed by Filter: 19611
+              ->  Hash (actual time=0.015..0.017 rows=3 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    ->  Seq Scan on outlet o (actual time=0.005..0.005 rows=3 loops=1)
+Planning Time: 0.601 ms
+Execution Time: 13.628 ms
+
+===== Q8 (before) =====
+Subquery Scan on ranked (actual time=58.205..58.216 rows=2 loops=1)
+  Filter: (ranked.rn = 1)
+  ->  WindowAgg (actual time=58.201..58.212 rows=2 loops=1)
+        Run Condition: (row_number() OVER (?) <= 1)
+        ->  Sort (actual time=58.185..58.190 rows=20 loops=1)
+              Sort Key: per_channel.channel, per_channel.qty_sold DESC
+              Sort Method: quicksort  Memory: 26kB
+              ->  Subquery Scan on per_channel (actual time=58.147..58.158 rows=20 loops=1)
+                    ->  HashAggregate (actual time=58.146..58.154 rows=20 loops=1)
+                          Group Key: s.channel, p.name
+                          Batches: 1  Memory Usage: 32kB
+                          ->  Hash Join (actual time=6.993..35.412 rows=62727 loops=1)
+                                Hash Cond: (sl.product_id = p.product_id)
+                                ->  Hash Join (actual time=6.961..27.314 rows=62727 loops=1)
+                                      Hash Cond: (sl.sale_id = s.sale_id)
+                                      ->  Seq Scan on sale_line sl (actual time=0.004..4.679 rows=62727 loops=1)
+                                      ->  Hash (actual time=6.828..6.829 rows=31385 loops=1)
+                                            Buckets: 32768  Batches: 1  Memory Usage: 1605kB
+                                            ->  Seq Scan on sale s (actual time=0.008..2.954 rows=31385 loops=1)
+                                ->  Hash (actual time=0.018..0.019 rows=10 loops=1)
+                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                      ->  Seq Scan on product p (actual time=0.004..0.005 rows=10 loops=1)
+Planning Time: 0.759 ms
+Execution Time: 58.418 ms

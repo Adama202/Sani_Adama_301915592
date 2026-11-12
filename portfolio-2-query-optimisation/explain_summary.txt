@@ -1,0 +1,14 @@
+P2 EXPLAIN ANALYZE summary (real run on this machine)
+
+Query  Before ms   After ms  How tables were read AFTER indexes
+Q1           0.9        0.2  Index Scan outlet_stock, Seq Scan outlet, Seq Scan product
+Q2         167.3      148.3  Index Scan outlet, Seq Scan product, Seq Scan sale, Seq Scan sale_line
+Q3           0.7        0.2  Bitmap Heap Scan ingredient_batch, Index Scan ix_ingredient_batch_expiry, Seq Scan ingredient, Seq Scan supplier
+Q4           6.2        0.3  Index Scan outlet, Index Scan outlet_stock, Index Scan product
+Q5           0.2        0.2  Seq Scan ingredient, Seq Scan product, Seq Scan recipe_line
+Q6          74.2       70.2  Seq Scan sale, Seq Scan sale_line
+Q7          13.6       11.7  Bitmap Heap Scan sale, Index Scan ix_sale_time, Seq Scan outlet
+Q8          58.4       60.0  Seq Scan product, Seq Scan sale, Seq Scan sale_line
+
+Note: where After is not faster, the planner kept a Seq Scan on purpose (full-history
+aggregates read most of the table) or the difference is run-to-run noise.

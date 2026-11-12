@@ -1,0 +1,193 @@
+Pager usage is off.
+===== Q1. Items left at each outlet today =====
+         outlet          |        product        | quantity_left 
+-------------------------+-----------------------+---------------
+ Crumble Studio Gwarinpa | Croissant             |            44
+ Crumble Studio Gwarinpa | Pain au chocolat      |            44
+ Crumble Studio Gwarinpa | Chocolate chip cookie |            40
+ Crumble Studio Gwarinpa | Oatmeal raisin cookie |            40
+ Crumble Studio Gwarinpa | Baguette              |            36
+ Crumble Studio Gwarinpa | Sourdough loaf        |            36
+ Crumble Studio Gwarinpa | Brioche               |            30
+ Crumble Studio Gwarinpa | Cinnamon roll         |            30
+ Crumble Studio Gwarinpa | Chicken pie           |            24
+ Crumble Studio Gwarinpa | Meat pie              |            24
+ Crumble Studio Jabi     | Croissant             |           110
+ Crumble Studio Jabi     | Pain au chocolat      |           110
+ Crumble Studio Jabi     | Chocolate chip cookie |           100
+ Crumble Studio Jabi     | Oatmeal raisin cookie |           100
+ Crumble Studio Jabi     | Baguette              |            90
+ Crumble Studio Jabi     | Sourdough loaf        |            90
+ Crumble Studio Jabi     | Brioche               |            75
+ Crumble Studio Jabi     | Cinnamon roll         |            75
+ Crumble Studio Jabi     | Chicken pie           |            60
+ Crumble Studio Jabi     | Meat pie              |            60
+ Crumble Studio Wuse 2   | Croissant             |            66
+ Crumble Studio Wuse 2   | Pain au chocolat      |            66
+ Crumble Studio Wuse 2   | Chocolate chip cookie |            60
+ Crumble Studio Wuse 2   | Oatmeal raisin cookie |            60
+ Crumble Studio Wuse 2   | Baguette              |            54
+ Crumble Studio Wuse 2   | Sourdough loaf        |            54
+ Crumble Studio Wuse 2   | Brioche               |            45
+ Crumble Studio Wuse 2   | Cinnamon roll         |            45
+ Crumble Studio Wuse 2   | Chicken pie           |            36
+ Crumble Studio Wuse 2   | Meat pie              |            36
+(30 rows)
+
+===== Q2. Best sellers per outlet per month =====
+         outlet          | yyyymm  |        product        | qty_sold 
+-------------------------+---------+-----------------------+----------
+ Crumble Studio Gwarinpa | 2026-03 | Brioche               |      231
+ Crumble Studio Jabi     | 2026-03 | Sourdough loaf        |      242
+ Crumble Studio Wuse 2   | 2026-03 | Chocolate chip cookie |      228
+ Crumble Studio Gwarinpa | 2026-04 | Meat pie              |      429
+ Crumble Studio Jabi     | 2026-04 | Cinnamon roll         |      465
+ Crumble Studio Wuse 2   | 2026-04 | Chocolate chip cookie |      449
+ Crumble Studio Gwarinpa | 2026-05 | Pain au chocolat      |      464
+ Crumble Studio Jabi     | 2026-05 | Chocolate chip cookie |      465
+ Crumble Studio Wuse 2   | 2026-05 | Brioche               |      451
+ Crumble Studio Gwarinpa | 2026-06 | Pain au chocolat      |      405
+ Crumble Studio Jabi     | 2026-06 | Meat pie              |      438
+ Crumble Studio Wuse 2   | 2026-06 | Chicken pie           |      437
+ Crumble Studio Gwarinpa | 2026-07 | Chocolate chip cookie |      462
+ Crumble Studio Jabi     | 2026-07 | Meat pie              |      455
+ Crumble Studio Wuse 2   | 2026-07 | Croissant             |      452
+ Crumble Studio Gwarinpa | 2026-08 | Cinnamon roll         |      418
+ Crumble Studio Jabi     | 2026-08 | Pain au chocolat      |      412
+ Crumble Studio Wuse 2   | 2026-08 | Oatmeal raisin cookie |      431
+ Crumble Studio Gwarinpa | 2026-09 | Meat pie              |      401
+ Crumble Studio Jabi     | 2026-09 | Sourdough loaf        |      412
+ Crumble Studio Wuse 2   | 2026-09 | Brioche               |      441
+ Crumble Studio Gwarinpa | 2026-10 | Chocolate chip cookie |      463
+ Crumble Studio Jabi     | 2026-10 | Croissant             |      444
+ Crumble Studio Wuse 2   | 2026-10 | Pain au chocolat      |      450
+ Crumble Studio Gwarinpa | 2026-11 | Pain au chocolat      |      161
+ Crumble Studio Jabi     | 2026-11 | Sourdough loaf        |      169
+ Crumble Studio Wuse 2   | 2026-11 | Meat pie              |      181
+(27 rows)
+
+===== Q3. Ingredients expiring in the next 3 days =====
+   ingredient   | batch_id | expiry_date | qty_left  |          supplier          
+----------------+----------+-------------+-----------+----------------------------
+ Instant yeast  |      421 | 2026-11-12  | 39963.989 | Flour Mills of Nigeria Plc
+ Minced beef    |      412 | 2026-11-12  | 39865.300 | Bakers Mart Abuja
+ Eggs           |      422 | 2026-11-13  | 31980.000 | Honeywell Flour Mills
+ Onions         |      413 | 2026-11-13  | 39915.080 | Northern Nigeria Foods Co.
+ Tomatoes       |      414 | 2026-11-14  | 39909.360 | Premium Dairy Abuja
+ Whole milk     |      423 | 2026-11-14  | 39489.180 | Bakers Mart Abuja
+ Dark chocolate |      424 | 2026-11-15  | 39930.920 | Northern Nigeria Foods Co.
+ Oat flakes     |      415 | 2026-11-15  | 39949.400 | Flour Mills of Nigeria Plc
+ Wheat flour    |      433 | 2026-11-15  | 38556.570 | Honeywell Flour Mills
+(9 rows)
+
+===== Q4. Waste per product (baked but unsold) =====
+         outlet          |        product        | stock_date | waste_units 
+-------------------------+-----------------------+------------+-------------
+ Crumble Studio Gwarinpa | Pain au chocolat      | 2026-11-11 |          33
+ Crumble Studio Gwarinpa | Croissant             | 2026-11-11 |          32
+ Crumble Studio Gwarinpa | Chocolate chip cookie | 2026-11-11 |          31
+ Crumble Studio Gwarinpa | Sourdough loaf        | 2026-11-11 |          29
+ Crumble Studio Gwarinpa | Oatmeal raisin cookie | 2026-11-11 |          26
+ Crumble Studio Gwarinpa | Baguette              | 2026-11-11 |          24
+ Crumble Studio Gwarinpa | Cinnamon roll         | 2026-11-11 |          19
+ Crumble Studio Gwarinpa | Brioche               | 2026-11-11 |          17
+ Crumble Studio Gwarinpa | Chicken pie           | 2026-11-11 |          16
+ Crumble Studio Gwarinpa | Meat pie              | 2026-11-11 |          13
+ Crumble Studio Jabi     | Pain au chocolat      | 2026-11-11 |          97
+ Crumble Studio Jabi     | Chocolate chip cookie | 2026-11-11 |          94
+ Crumble Studio Jabi     | Croissant             | 2026-11-11 |          91
+ Crumble Studio Jabi     | Oatmeal raisin cookie | 2026-11-11 |          89
+ Crumble Studio Jabi     | Baguette              | 2026-11-11 |          81
+ Crumble Studio Jabi     | Sourdough loaf        | 2026-11-11 |          80
+ Crumble Studio Jabi     | Brioche               | 2026-11-11 |          64
+ Crumble Studio Jabi     | Cinnamon roll         | 2026-11-11 |          60
+ Crumble Studio Jabi     | Chicken pie           | 2026-11-11 |          47
+ Crumble Studio Jabi     | Meat pie              | 2026-11-11 |          43
+ Crumble Studio Wuse 2   | Croissant             | 2026-11-11 |          63
+ Crumble Studio Wuse 2   | Chocolate chip cookie | 2026-11-11 |          57
+ Crumble Studio Wuse 2   | Pain au chocolat      | 2026-11-11 |          56
+ Crumble Studio Wuse 2   | Sourdough loaf        | 2026-11-11 |          50
+ Crumble Studio Wuse 2   | Oatmeal raisin cookie | 2026-11-11 |          49
+ Crumble Studio Wuse 2   | Baguette              | 2026-11-11 |          45
+ Crumble Studio Wuse 2   | Cinnamon roll         | 2026-11-11 |          38
+ Crumble Studio Wuse 2   | Brioche               | 2026-11-11 |          35
+ Crumble Studio Wuse 2   | Chicken pie           | 2026-11-11 |          30
+ Crumble Studio Wuse 2   | Meat pie              | 2026-11-11 |          28
+ Crumble Studio Gwarinpa | Croissant             | 2026-11-10 |          36
+ Crumble Studio Gwarinpa | Chocolate chip cookie | 2026-11-10 |          34
+ Crumble Studio Gwarinpa | Pain au chocolat      | 2026-11-10 |          33
+ Crumble Studio Gwarinpa | Sourdough loaf        | 2026-11-10 |          26
+ Crumble Studio Gwarinpa | Baguette              | 2026-11-10 |          26
+ Crumble Studio Gwarinpa | Oatmeal raisin cookie | 2026-11-10 |          23
+ Crumble Studio Gwarinpa | Chicken pie           | 2026-11-10 |          21
+ Crumble Studio Gwarinpa | Brioche               | 2026-11-10 |          21
+ Crumble Studio Gwarinpa | Cinnamon roll         | 2026-11-10 |          20
+ Crumble Studio Gwarinpa | Meat pie              | 2026-11-10 |          15
+ Crumble Studio Jabi     | Pain au chocolat      | 2026-11-10 |         108
+ Crumble Studio Jabi     | Croissant             | 2026-11-10 |          99
+ Crumble Studio Jabi     | Oatmeal raisin cookie | 2026-11-10 |          93
+ Crumble Studio Jabi     | Chocolate chip cookie | 2026-11-10 |          89
+ Crumble Studio Jabi     | Baguette              | 2026-11-10 |          85
+ Crumble Studio Jabi     | Sourdough loaf        | 2026-11-10 |          79
+ Crumble Studio Jabi     | Brioche               | 2026-11-10 |          65
+ Crumble Studio Jabi     | Cinnamon roll         | 2026-11-10 |          62
+ Crumble Studio Jabi     | Meat pie              | 2026-11-10 |          50
+ Crumble Studio Jabi     | Chicken pie           | 2026-11-10 |          45
+(50 rows)
+
+===== Q5. Ingredient cost per product =====
+        product        | selling_price_ngn | ingredient_cost_ngn | gross_margin_ngn | gross_margin_pct 
+-----------------------+-------------------+---------------------+------------------+------------------
+ Sourdough loaf        |           2500.00 |              990.00 |          1510.00 |             60.4
+ Baguette              |           1500.00 |              654.00 |           846.00 |             56.4
+ Brioche               |           3000.00 |             1472.80 |          1527.20 |             50.9
+ Cinnamon roll         |           1300.00 |              722.00 |           578.00 |             44.5
+ Chicken pie           |           2000.00 |             1157.00 |           843.00 |             42.2
+ Croissant             |           1200.00 |              803.20 |           396.80 |             33.1
+ Pain au chocolat      |           1500.00 |             1073.20 |           426.80 |             28.5
+ Meat pie              |           1800.00 |             2432.00 |          -632.00 |            -35.1
+ Oatmeal raisin cookie |            700.00 |             1031.50 |          -331.50 |            -47.4
+ Chocolate chip cookie |            600.00 |             1059.90 |          -459.90 |            -76.7
+(10 rows)
+
+===== Q6. Sales per hour of day =====
+ hour_of_day | n_sales | units_sold | revenue_ngn | counter_sales | online_sales 
+-------------+---------+------------+-------------+---------------+--------------
+           7 |    8568 |      12867 | 20847900.00 |          5579 |         2989
+           8 |    8722 |      13091 | 21230600.00 |          5650 |         3072
+           9 |    8558 |      12740 | 20335400.00 |          5468 |         3090
+          10 |    8782 |      13209 | 21379900.00 |          5685 |         3097
+          12 |    4085 |       6149 |  9845200.00 |          2660 |         1425
+          13 |    4191 |       6327 | 10150300.00 |          2666 |         1525
+          14 |    4157 |       6240 | 10123900.00 |          2621 |         1536
+          17 |    3151 |       4743 |  7737200.00 |          2090 |         1061
+          18 |    3014 |       4531 |  7200800.00 |          1943 |         1071
+          19 |    3109 |       4708 |  7488500.00 |          2053 |         1056
+          20 |    3259 |       4879 |  7768000.00 |          2176 |         1083
+          21 |    3131 |       4702 |  7526500.00 |          2072 |         1059
+(12 rows)
+
+===== Q7. Revenue per outlet per month =====
+         outlet          | yyyymm  | n_sales | revenue_ngn 
+-------------------------+---------+---------+-------------
+ Crumble Studio Gwarinpa | 2026-08 |     801 |  3874100.00
+ Crumble Studio Jabi     | 2026-08 |     780 |  3558900.00
+ Crumble Studio Wuse 2   | 2026-08 |     798 |  3691300.00
+ Crumble Studio Gwarinpa | 2026-09 |    1272 |  6063900.00
+ Crumble Studio Jabi     | 2026-09 |    1284 |  6161000.00
+ Crumble Studio Wuse 2   | 2026-09 |    1332 |  6699400.00
+ Crumble Studio Gwarinpa | 2026-10 |    1385 |  6805200.00
+ Crumble Studio Jabi     | 2026-10 |    1365 |  6584900.00
+ Crumble Studio Wuse 2   | 2026-10 |    1341 |  6440800.00
+ Crumble Studio Gwarinpa | 2026-11 |     471 |  2171100.00
+ Crumble Studio Jabi     | 2026-11 |     474 |  2310500.00
+ Crumble Studio Wuse 2   | 2026-11 |     471 |  2260200.00
+(12 rows)
+
+===== Q8. Top product per channel =====
+ channel |        product        | qty_sold | revenue_ngn 
+---------+-----------------------+----------+-------------
+ counter | Meat pie              |     6293 | 11327400.00
+ online  | Chocolate chip cookie |     3474 |  2084400.00
+(2 rows)
+
